@@ -1,0 +1,10 @@
+try{
+    throw("Number dekh le, bable")
+}
+
+catch(e){
+    give("Handled")
+    raise(e)
+}
+
+   
