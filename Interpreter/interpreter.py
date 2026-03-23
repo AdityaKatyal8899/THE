@@ -20,7 +20,7 @@ class Interpreter:
             "keys": self.builtin_keys,
             "values": self.builtin_values,
             "contains": self.builtin_contains,
-               
+            "range": self.builtin_range,
         }
 
         self.last_error = None
@@ -41,6 +41,37 @@ class Interpreter:
         return  args[0].append(*args[1: ])
 
         
+    def builtin_range(self, args):
+        if len(args) == 1:
+            start = 0
+            end = args[0].value
+            step = 1
+        
+        elif len(args) == 2:
+            start = args[0].value
+            end = args[1].value
+            step = 1
+
+        elif len(args) == 2:
+            start = args[0].value
+            end = args[1].value
+            step = args[2].value
+
+        else:
+            raise THEerror("range expects 1 to 3 arguments")
+        
+        res=  []
+        i = start
+
+
+        if step == 0:
+            raise THEerror("Step can't be 0")
+        
+        while (step > 0 and i < end) or (step < 0 and i > end):
+            res.append(THE_Number(i))
+            i += step
+
+        return THE_Array(res)
 
     #Will give all the keys within the map
     def builtin_keys(self, args):
@@ -231,6 +262,42 @@ class Interpreter:
 
     def visit_FunctionNode(self, node):
         self.env_stack[-1][node.name] = node
+
+    
+
+    def visit_FunctionCallNode(self, node):
+        fun = None
+        for env in reversed(self.env_stack):
+            if node.name in env:
+                fun = env[node.name]
+                break
+
+        if not fun:
+            raise THEerror(f"Functio'{node.name}' is not defined")
+        
+        args = [self.visit(arg) for arg in node.args]
+    
+        if callable(fun):
+            return fun(args)
+        
+        new_env = {}
+
+        for param, val in zip(fun.params, args):
+            new_env[param] = val
+        
+        self.env_stack.append(new_env)
+
+        res = None
+
+        try:
+            for stmt in fun.body:
+                res = self.visit(stmt)
+
+        finally:
+            self.env_stack.pop()
+
+        return res
+
 
     def visit_MethodCallNode(self, node):
         obj = self.visit(node.object)

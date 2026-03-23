@@ -1,7 +1,7 @@
 from lexer.token import *
 from parser.ast_nodes import *
 from utils.errors import THEerror 
-
+from lexer.tokenizer import Tokenizer
 class Parser:
     def __init__(self, tokens):
         self.tokens = tokens
@@ -13,11 +13,21 @@ class Parser:
         if self.pos < len(self.tokens):
             self.current_token = self.tokens[self.pos]
 
+        else:
+            self.current_token = None
+
     def eat(self, token_type):
         if self.current_token.type == token_type:
             self.advance()
         else:
             raise Exception(f"Unexpected token: {self.current_token.type}")
+
+    def peek(self):
+        peek_pos = self.pos + 1
+        if peek_pos >= len(self.tokens):
+            return None
+        return self.tokens[peek_pos] 
+    
 
     def parse_or(self):
         left = self.parse_and()
@@ -170,9 +180,9 @@ class Parser:
                     node = MethodCallNode(node, method, args)
                 
                 elif self.current_token.type == LBRACKET:
-                    self.eat(LBRACE)
+                    self.eat(LBRACKET)
                     idx = self.parse_or()
-                    self.eat(RBRACE)
+                    self.eat(RBRACKET)
 
                     node = IndexNode(node, idx)
 
@@ -288,11 +298,14 @@ class Parser:
     
     def looptill_parser(self):
         self.eat(LOOPTILL)
-        self.eat(LPAREN)
 
-        condition = self.parse_or()
+        if self.current_token and self.current_token.type == LPAREN:
+            self.eat(LPAREN)
+            condition = self.parse_or()
+            self.eat(RPAREN)
 
-        self.eat(RPAREN)
+        else:
+            condition = self.parse_or()
         self.eat(LBRACE)
 
         body = []
@@ -339,9 +352,7 @@ class Parser:
 
         return ele
 
-
     def function_parser(self):
-
         self.eat(FUNC)
 
         name = self.current_token.value
@@ -373,10 +384,32 @@ class Parser:
 
         return FunctionNode(name, params, body)
     
+    def function_call_parser(self):
+        
+        name = self.current_token.value
+        self.eat(IDENTIFIER)
+
+        self.eat(LPAREN)
+
+        args = []
+
+        if self.current_token.type != RPAREN:
+            args.append(self.parse_or())
+
+            while self.current_token.type == COMMA:
+                self.eat(COMMA)
+                args.append(self.parse_or())
+        self.eat(RPAREN)
+        return FunctionCallNode(name, args)
+    
+    
     def return_parser(self):
         self.eat(RETURN)
 
-        value = self.parse_or()
+        value = None
+
+        if self.current_token and self.current_token.type != RBRACE:
+            value = self.parse_or()
 
         return ReturnNode(value)
 
@@ -487,7 +520,12 @@ class Parser:
             return self.loopin_parser()
 
         if token.type == IDENTIFIER:
-            return self.assignment_parser()
+            if self.peek() and self.peek().type == ASSIGN:
+                return self.assignment_parser()
+            elif self.peek() and self.peek().type == LPAREN:
+                return self.function_call_parser()
+            else:
+                return self.parse_exp()
 
         if token.type == IF:
             return self.if_parser()

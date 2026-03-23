@@ -77,6 +77,11 @@ class FunctionNode(ASTNode):
         self.params = params
         self.body = body
 
+class FunctionCallNode(ASTNode):
+    def __init__(self, name, args):
+        self.name = name
+        self.args = args
+
 class ReturnNode(ASTNode):
     def __init__(self, value):
         self.value = value

@@ -3,14 +3,18 @@ from parser.parser import Parser
 from Interpreter.interpreter import Interpreter
 from utils.errors import THEerror
 
-with open("examples/hello.the") as f:
+with open("examples/file.the") as f:
     code = f.read()
 
 lexer = Tokenizer(code)
 tokens = lexer.tokenize()
 
+# for t in tokens:
+#     print(t, type(t))
+
 parser = Parser(tokens)
 ast = parser.program_Parser()
+
 
 interpret = Interpreter()
 

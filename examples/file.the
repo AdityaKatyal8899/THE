@@ -1,0 +1,3 @@
+LoopIn range(1, 11) with i {
+    give(i, end=" ")
+}

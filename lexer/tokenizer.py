@@ -104,7 +104,6 @@ class Tokenizer:
 
     def tokenize(self):
         tokens = []
-
         while self.current_char is not None:
             if self.current_char.isspace():
                 self.skip_whitespaces()
